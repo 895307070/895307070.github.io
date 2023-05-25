@@ -1,0 +1,447 @@
+<!--
+ * @Descripttion: 
+ * @Author: zhangJunQing
+ * @Date: 2021-04-25 
+ * @LastEditors: zhangJunQing  1
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邦邦硬</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas {
+            position: relative;
+            /* background: black; */
+            background-size: 100vw 100vh;
+            background-image: url('https://statics.bjzqym.com/pc/pc/public/index/1684285861225.jpg');
+        }
+
+        .divBox {
+            border: none;
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            top: 0;
+            left: 0;
+            z-index: 888;
+            width: 100%;
+            height: 100%;
+        }
+
+        span {
+            font-size: 20%;
+            position: absolute;
+        }
+
+        .samllBig {
+            width: 100vw;
+            margin-top: 20%;
+            height: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .samllBigChild {
+            width: 50%;
+            margin-top: 12%;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .samllBigChild button {
+            display: inline-block;
+            border: none;
+            background: rgb(143, 139, 179);
+            color: black;
+            font-weight: bold;
+            line-height: 100%;
+            padding: 6%;
+            width: 30%;
+            text-align: center;
+            transition: all 1s;
+        }
+
+        input {
+            width: 30%;
+            height: 20%;
+            line-height: 20%;
+            border: none;
+            background: rgb(143, 139, 179);
+            color: black;
+            font-weight: bold;
+            text-align: center;
+            transition: all 1s;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="divBox">
+        <span></span>
+        <div class="samllBig">
+            <input type="text" placeholder="请输入刚开始小方块个数">
+            <div class="samllBigChild">
+                <button class="button1">APP模式</button>
+                <button class="button2">PC模式</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- <button class="but">因为打开的窗口大小不是小方块的倍数，所以可能存在误差</button> -->
+    <script>
+
+        let canvas = document.getElementById('canvas')
+        let btn = document.getElementsByTagName('button')[0]
+        let btn1 = document.getElementsByTagName('button')[1]
+        let input = document.getElementsByTagName('input')[0]
+        let span = document.getElementsByTagName('span')[0]
+        let smSetInterValTime = 100
+        let SnackNum = null
+        let EatNum = 0
+        span.innerHTML = EatNum * 10 + '分;当前速度' + (100 - smSetInterValTime)
+        window.onload = () => {
+            canvas.width = document.documentElement.clientWidth
+            canvas.height = document.documentElement.clientHeight
+        }
+        window.addEventListener('resize', () => {
+            window.onload()
+        })
+        //每个蛇身体的大小
+        let rectSize = 15
+        //迟到的食物个数
+        let ctx = canvas.getContext('2d')
+        //蛇头
+        let SnackTop = null
+        //蛇身体
+        let SnackList = null
+        //蛇整体
+        let SnackFonlyList = null
+        //食物数组
+        let EatList = null
+        //存放上次状态的数组
+        let list = null
+        //定时器id
+        let timeID = null;
+        //坐标
+        var x1, y1, x2, y2;
+        //颜色数组
+        let colorList = null
+        //初始化
+        let init = function () {
+            // 吃掉的食物个数
+            EatNum = 0
+            //定时器毫秒数
+            smSetInterValTime = 100
+            if (input.value && input.value != undefined && input.value != '' && input.value != null) {
+                if (input.value <= 3 || input.value > 20) {
+                    alert('请输入大于3小于等于20')
+                    return
+                }
+                SnackNum = input.value
+                //吃掉一个食物 更改一次分数 速度   默认为 0 
+                span.innerHTML = EatNum * 10 + '分;当前速度' + (100 - smSetInterValTime)
+            } else {
+                alert('请输入数量')
+                return
+            }
+            x1 = rectSize; y1 = rectSize; x2 = rectSize; y2 = rectSize;
+            list = []
+            SnackTop = []
+            SnackList = []
+            SnackFonlyList = [...SnackTop, ...SnackList]
+            EatList = []
+            colorList = ["#33B5E5", "#0099CC", "#AA66CC", "#9933CC", "#99CC00", "#669900", "#FFBB33", "#FF8800", "#FF4444", "#CC0000"]
+            getSanck()
+            //将整个数组颠倒，才能是我们整个蛇身的顺序
+            SnackList = SnackList.reverse()
+            btn.style.opacity = 0
+            btn1.style.opacity = 0
+            input.style.opacity = 0
+            //输入框制空
+            input.value = ''
+            // btn1.style.opacity = 0
+            setTimeout(function () {
+                requestAnimation()
+                btn.innerHTML = 'APP重开'
+                btn1.innerHTML = 'PC重开'
+                timeID = setInterval(requestAnimation, smSetInterValTime)
+            }, 1000)
+        }
+
+        btn1.addEventListener('click', function () {
+            if (btn1.innerHTML == 'PC模式') {
+                rectSize = 30
+                init()
+            } else {
+                rectSize = 30
+                init()
+            }
+        })
+        btn.addEventListener('click', function () {
+            if (btn.innerHTML == 'APP模式') {
+                rectSize = 15
+                init()
+            } else {
+                rectSize = 15
+                init()
+            }
+        })
+        function Snack(x1 = rectSize, y1 = rectSize, x2 = rectSize, y2 = rectSize, color) {
+            this.x1 = x1;
+            this.x2 = x2;
+            this.y1 = y1;
+            this.y2 = y2;
+            this.color = color || colorList[Math.floor(Math.random() * 10)]
+            this.direction = 'x'  //X向右 y向下 -x 向左  -y 上
+            this.paceSoon = rectSize
+        }
+        Snack.prototype.RectFun = function () {
+            ctx.beginPath();
+            ctx.fillStyle = this.color
+            ctx.fillRect(this.x1, this.y1, this.x2, this.y2);
+            ctx.stroke();
+        }
+        //动起来的方法，就是一直改变他的x1,y1
+        Snack.prototype.Update = function () {
+            if (this.direction == 'x') {
+                this.x1 += this.paceSoon
+            } else if (this.direction == 'y') {
+                this.y1 += this.paceSoon
+            } else if (this.direction == '-x') {
+                this.x1 -= this.paceSoon
+            } else if (this.direction == '-y') {
+                this.y1 -= this.paceSoon
+            }
+        }
+        //让第一个蛇身跟着蛇头，其他蛇身跟着上一个蛇身，让他们的状态一直改变（也就是属性值改变）
+        Snack.prototype.directionFun = function (index) {
+            if (index == 0) {
+                if (SnackTop[0].direction == 'x') {
+                    this.x1 = SnackTop[0].x1 - rectSize
+                    this.direction = 'x'
+                    this.y1 = SnackTop[0].y1
+                } else if (SnackTop[0].direction == 'y') {
+                    this.direction = 'y'
+                    this.x1 = SnackTop[0].x1
+                    this.y1 = SnackTop[0].y1 - rectSize
+                } else if (SnackTop[0].direction == '-x') {
+                    this.direction = '-x'
+                    this.x1 = SnackTop[0].x1 + rectSize
+                    this.y1 = SnackTop[0].y1
+                } else if (SnackTop[0].direction == '-y') {
+                    this.direction = '-y'
+                    this.y1 = SnackTop[0].y1 + rectSize
+                    this.x1 = SnackTop[0].x1
+                }
+            } else {
+                if (list[index - 1].direction == 'x') {
+                    this.x1 = list[index - 1].x1
+                    this.y1 = list[index - 1].y1
+                } else if (list[index - 1].direction == 'y') {
+                    this.x1 = list[index - 1].x1
+                    this.y1 = list[index - 1].y1
+                } else if (list[index - 1].direction == '-x') {
+                    this.x1 = list[index - 1].x1
+                    this.y1 = list[index - 1].y1
+                } else if (list[index - 1].direction == '-y') {
+                    this.y1 = list[index - 1].y1
+                    this.x1 = list[index - 1].x1
+                }
+            }
+        }
+        //食物  构造函数
+        function Eat(x1, y1, x2, y2) {
+            this.x1 = x1;
+            this.y1 = y1;
+            this.x2 = x2;
+            this.y2 = y2;
+            this.color = colorList[Math.floor(Math.random() * 10)]
+        }
+        //食物 原型方法
+        Eat.prototype.RectFunE = function () {
+            ctx.beginPath();
+            ctx.fillStyle = this.color
+            ctx.fillRect(this.x1, this.y1, this.x2, this.y2);
+            ctx.stroke();
+        }
+        //生成蛇身体和一个蛇头
+        function getSanck() {
+            for (let i = 0; i < SnackNum; i++) {
+                x1 += rectSize;
+                SnackList.length != SnackNum - 1 ? SnackList.push(new Snack(x1, y1, x2, y2)) : SnackTop.push(new Snack(x1, y1, x2, y2))
+            }
+        }
+
+        //生成食物随机数 
+        //利用递归生成一个随机数，并且使蛇方块的大小倍数
+        function MathRandomFun(min, max) {
+            let num = Math.floor((max - min) * Math.random() + min)
+            if (num % rectSize == 0) {
+                return num
+            } else {
+                return MathRandomFun(min, max)
+            }
+        }
+
+        // 生成n个正方形  和一个食物
+        function requestAnimation() {
+            //上一次每一个蛇身的状态
+            list = JSON.parse(JSON.stringify(SnackList))
+            // ctx.fillStyle ="rgba(0,0,0,.05)"
+            // ctx.fillRect(0, 0, canvas.width, canvas.height)
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            //食物  给生成的食物控制范围
+            if (EatList.length == 0)
+                EatList.push(new Eat(MathRandomFun(120, canvas.width - 120), MathRandomFun(150, canvas.height - 90), x2, y2))
+            EatList.map(item => {
+                item.RectFunE()
+            })
+            //判断舌头和食物的位置信息
+            //SnackTop  舌头
+            //EatList   食物
+            if (SnackTop[0].x1 == EatList[0].x1 && SnackTop[0].y1 == EatList[0].y1) {
+                //添加蛇身体
+                EatNum++
+                //没吃掉是个食物  定时器毫秒-10   页面显示速度+10
+                switch (EatNum) {
+                    case 10: smSetInterValTime = 80; clearInterval(timeID); timeID = setInterval(requestAnimation, smSetInterValTime); break;
+                    case 20: smSetInterValTime = 70; clearInterval(timeID); timeID = setInterval(requestAnimation, smSetInterValTime); break;
+                    case 30: smSetInterValTime = 60; clearInterval(timeID); timeID = setInterval(requestAnimation, smSetInterValTime); break;
+                    case 40: smSetInterValTime = 50; clearInterval(timeID); timeID = setInterval(requestAnimation, smSetInterValTime); break;
+                    case 50: smSetInterValTime = 40; clearInterval(timeID); timeID = setInterval(requestAnimation, smSetInterValTime); break;
+                    case 60: smSetInterValTime = 30; clearInterval(timeID); timeID = setInterval(requestAnimation, smSetInterValTime); break;
+                }
+                //吃掉一个食物 更改一次分数 速度
+                span.innerHTML = EatNum * 10 + '分;当前速度' + (100 - smSetInterValTime)
+                //定时器速度小于30 闯关成功
+                if (smSetInterValTime <= 30) {
+                    alert('恭喜您闯关成功')
+                    //取消定时器
+                    clearInterval(timeID)
+                    //重置画布
+                    ctx.clearRect(0, 0, canvas.width, canvas.height)
+                    //按钮 inp显示
+                    btn.style.opacity = 1
+                    btn1.style.opacity = 1
+                    input.style.opacity = 1
+                    return
+                }
+                //吃掉食物 身体加1 颜色为吃的食物颜色
+                SnackList.push(new Snack(list[list.length - 1].x1, list[list.length - 1].y1, x2, y2, EatList[0].color))
+                EatList.length = 0
+            }
+            SnackTop.map(item => {
+                item.RectFun()
+                item.Update()
+            })
+            SnackList.map((item, index) => {
+                item.RectFun()
+                item.directionFun(index)
+            })
+            //任意一遍超出界限就是游戏失败
+            if (SnackTop[0].x1 <= -60 || SnackTop[0].x1 > canvas.width || SnackTop[0].y1 <= -60 || SnackTop[0].y1 > canvas.height) {
+                clearInterval(timeID)
+                ctx.clearRect(0, 0, canvas.width, canvas.height)
+                btn.style.opacity = 1
+                btn1.style.opacity = 1
+                input.style.opacity = 1
+                // btn1.style.opacity = 1
+                return false
+            }
+        }
+        //添加键盘按下时间 并且不能直接掉头
+        window.addEventListener('keydown', function (e) {
+            if (e.keyCode == '39') {
+                SnackTop[0].direction == '-x' ? '' : SnackTop[0].direction = 'x'
+                // console.log('右')
+            } else if (e.keyCode == '40') {//下 40
+                SnackTop[0].direction == '-y' ? '' : SnackTop[0].direction = 'y'
+                // console.log('下')
+            } else if (e.keyCode == '37') {//左 37
+                SnackTop[0].direction == 'x' ? '' : SnackTop[0].direction = '-x'
+                // console.log('-x')
+            } else if (e.keyCode == '38') {//右 39
+                SnackTop[0].direction == 'y' ? '' : SnackTop[0].direction = '-y'
+                // console.log('-y')
+            }
+        })
+        var touchSX
+        var touchSY
+        var touchMX
+        var touchMY
+        //手机端  控制方向  
+        window.addEventListener('touchstart', function (e) {
+            //记录除此触摸的X
+            touchSX = e.changedTouches[0].clientX
+             //记录除此触摸的Y
+            touchSY = e.changedTouches[0].clientY
+        })
+        window.addEventListener('touchmove', function (e) {
+            //记录滑动中的X
+            touchMX = e.changedTouches[0].clientX
+            //记录滑动中的Y
+            touchMY = e.changedTouches[0].clientY
+            //计算x轴正方向 x和y的cos值
+            let xyorx = (touchMX - touchSX) / (Math.sqrt(Math.pow(touchMX - touchSX, 2) + Math.pow(touchSY - touchMY, 2)))
+            //计算x轴负方向 x和y的cos值
+            let xyor_x = -(touchMX - touchSX) / (Math.sqrt(Math.pow(touchMX - touchSX, 2) + Math.pow(touchSY - touchMY, 2)))
+            if (touchMX - touchSX > 0) {//向右  
+                if (touchMY - touchSY > 0) { // y 下
+                    if (xyorx >= 0.707 && xyorx <= 1) {
+                        SnackTop[0].direction == '-x' ? '' : SnackTop[0].direction = 'x'
+                    } else {
+                        SnackTop[0].direction == '-y' ? '' : SnackTop[0].direction = 'y'
+                    }
+                } else { //-y  向上  touchMY < touchSY
+                    if (xyorx >= 0.707 && xyorx <= 1) {
+                        SnackTop[0].direction == '-x' ? '' : SnackTop[0].direction = 'x'
+                    } else {
+                        SnackTop[0].direction == 'y' ? '' : SnackTop[0].direction = '-y'
+                    }
+                }
+            } else {// //-x 
+                if (touchMY - touchSY > 0) { // y 下
+                    if (xyor_x >= 0.707 && xyor_x <= 1) {
+                        SnackTop[0].direction == 'x' ? '' : SnackTop[0].direction = '-x'
+                    } else {
+                        SnackTop[0].direction == '-y' ? '' : SnackTop[0].direction = 'y'
+                    }
+                } else { //-y  向上  touchMY < touchSY
+                    if (xyor_x >= 0.707 && xyor_x <= 1) {
+                        SnackTop[0].direction == 'x' ? '' : SnackTop[0].direction = '-x'
+                    } else {
+                        SnackTop[0].direction == 'y' ? '' : SnackTop[0].direction = '-y'
+                    }
+                }
+            }
+        })
+        window.addEventListener('touchend', function (e) {
+            touchSX = 0
+            touchSY = 0
+            touchMX = 0
+            touchMY = 0
+        })
+    </script>
+</body>
+
+</html>
